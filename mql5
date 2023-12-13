@@ -1,0 +1,93 @@
+
+//+------------------------------------------------------------------+
+//|                                                   EA Buzzer MT5   |
+//|                                https://forexroboteasy.com        |
+//|                                       Forex Robot Easy Team       |
+//+------------------------------------------------------------------+
+
+//--- Define input parameters
+input int seriesCount = 2; // Number of series to open
+input double lotSize = 0.01; // Lot size for each trade
+input int stopLoss = 100; // Stop loss level in points
+input int takeProfit = 100; // Take profit level in points
+
+//--- Define trading function
+void TradeBuySell(int orderType)
+{
+   double price = SymbolInfoDouble(Symbol(), SYMBOL_ASK);
+   double stopLossPrice = NormalizeDouble(price - stopLoss * _Point, _Digits);
+   double takeProfitPrice = NormalizeDouble(price + takeProfit * _Point, _Digits);
+   
+   for (int i = 0; i < seriesCount; i++)
+   {
+      int ticket = OrderSend(Symbol(), orderType, lotSize, price, 0, stopLossPrice, takeProfitPrice, 'EA Buzzer MT5', 0, 0, CLR_NONE);
+      
+      if (ticket > 0)
+      {
+         Print('Order placed successfully: ', OrderTicket());
+      }
+      else
+      {
+         Print('Failed to place order. Error code: ', GetLastError());
+      }
+   }
+}
+
+//--- Define function to manage manual orders
+void ManageManualOrders()
+{
+   int total = OrdersTotal();
+   
+   for (int i = 0; i < total; i++)
+   {
+      if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         if (OrderMagicNumber() == 0)
+         {
+            // Perform necessary operations on manual orders
+            // Example: Modify stop loss, take profit, etc.
+            // ...
+         }
+      }
+   }
+}
+
+//--- Define function to hedge positions
+void HedgePositions()
+{
+   int total = OrdersTotal();
+   
+   for (int i = 0; i < total; i++)
+   {
+      if (OrderSelect(i, SELECT_BY_POS, MODE_TRADES))
+      {
+         if (OrderType() == OP_BUY)
+         {
+            // Open a sell order to hedge the existing buy order
+            TradeBuySell(OP_SELL);
+         }
+         else if (OrderType() == OP_SELL)
+         {
+            // Open a buy order to hedge the existing sell order
+            TradeBuySell(OP_BUY);
+         }
+      }
+   }
+}
+
+//--- Start of the main program
+void OnTick()
+{
+   // Open new series of orders
+   for (int i = 0; i < seriesCount; i++)
+   {
+      TradeBuySell(OP_BUY);
+      TradeBuySell(OP_SELL);
+   }
+   
+   // Manage manual orders
+   ManageManualOrders();
+   
+   // Hedge positions
+   HedgePositions();
+}
